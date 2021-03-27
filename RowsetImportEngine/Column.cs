@@ -2,18 +2,18 @@ using System;
 using System.Data;
 using System.Text.RegularExpressions;
 
-// TODO: Need both DateTimeColumn and FloatColumn (for waitstats). 
-// TODO: Add error log text file showing the first 100 rows that a problem occurred on (flag in ). 
+// TODO: Need both DateTimeColumn and FloatColumn (for waitstats).
+// TODO: Add error log text file showing the first 100 rows that a problem occurred on (flag in ).
 
 /*
- * To define a new column type: 
- *  - Derive from either the abstract Column class or (ideally) one of its descendents. 
- *  - Add an instance of your new type to the KnownColumnTypes array in the ColumnTypes class below. 
- *  - If you must derive directly from Column (for example to add a new base data type) instead of 
- *    from one of its descendents like VarCharColumn, you must implement the shallow Copy() method 
- *    and the read-only DataType property. If you derive from one of the existing base data type 
- *    classes like VarCharColumn, IntColumn, etc, you can skip this third step. 
- * 
+ * To define a new column type:
+ *  - Derive from either the abstract Column class or (ideally) one of its descendents.
+ *  - Add an instance of your new type to the KnownColumnTypes array in the ColumnTypes class below.
+ *  - If you must derive directly from Column (for example to add a new base data type) instead of
+ *    from one of its descendents like VarCharColumn, you must implement the shallow Copy() method
+ *    and the read-only DataType property. If you derive from one of the existing base data type
+ *    classes like VarCharColumn, IntColumn, etc, you can skip this third step.
+ *
  */
 
 namespace RowsetImportEngine
@@ -26,8 +26,8 @@ namespace RowsetImportEngine
 			new NVarCharColumn(),
 			new IntColumn(),
 			new BigIntColumn(),
-			new DateTimeColumn(), 
-			new FloatColumn(), 
+			new DateTimeColumn(),
+			new FloatColumn(),
 			new DecimalColumn(),
 			new VarBinaryColumn(),
             new DateTimeOffsetColumn(),
@@ -35,8 +35,8 @@ namespace RowsetImportEngine
 	}
 
 	/// <summary>
-	/// Base Column class.  Abstract class, cannot be instantiated.  Derive from this class to create columns 
-	/// with specific base data types or custom data validation. 
+	/// Base Column class.  Abstract class, cannot be instantiated.  Derive from this class to create columns
+	/// with specific base data types or custom data validation.
 	/// </summary>
 	public abstract class Column
 	{
@@ -48,8 +48,8 @@ namespace RowsetImportEngine
 		public string ValueToken = "";		// Name of the token that should be used to provide the value of this column
 		public bool RowsetLevel = false;	// True if the data is set once at the rowset level (e.g. implied "runtime" column), false if it is actual row data
 		protected object data;	// Private storage for user data (may be any type)
-		public abstract SqlDbType DataType	// Column's datatype (abstract -- must be implemented by derived class).  Read only.	
-		{ 
+		public abstract SqlDbType DataType	// Column's datatype (abstract -- must be implemented by derived class).  Read only.
+		{
 			get;
 		}
 		public virtual object Data	// public property to set/get data. Can be overridden by descendants to do custom validation.
@@ -63,16 +63,16 @@ namespace RowsetImportEngine
 				data = ValidateData(value);
 			}
 		}
-		// The base class does not provide any data validation. If data fails validation, 
+		// The base class does not provide any data validation. If data fails validation,
 		// this function should return null.
 		public virtual object ValidateData(object columndata)
 		{
 			return columndata;
 		}
-		// The base class' implementation of implicit and explicit ToString conversion assumes that the data 
-		// stored is of a type that natively supports explicit conversion to string. If this is not the case, 
-		// the two functions below will need to be overridden. 
-		// Note: In current implementation, ToString() is not used. 
+		// The base class' implementation of implicit and explicit ToString conversion assumes that the data
+		// stored is of a type that natively supports explicit conversion to string. If this is not the case,
+		// the two functions below will need to be overridden.
+		// Note: In current implementation, ToString() is not used.
 		public override string ToString()					// Explicit convert-to-string operator
 		{
 			if (data == null) return "NULL";
@@ -84,47 +84,47 @@ namespace RowsetImportEngine
 			return (string)Convert.ChangeType(c.data, typeof(string));
 		}
 		public Column() {}
-		public Column(string Name, int Length, int SqlColumnLength, bool RowsetLevel) 
+		public Column(string Name, int Length, int SqlColumnLength, bool RowsetLevel)
 		{
 			this.Name = Name;
 			this.Length = Length;
 			this.SqlColumnLength = SqlColumnLength;
 			this.RowsetLevel = RowsetLevel;
 		}
-		// Every class derived directly from Column should implement a shallow (memberwise) Copy(). 
-		// Unfortunately can't implement here in the abstract ancestor because it requires instantiating 
-		// a new object. See VarCharColumn for suggested implementation. Used in 
-		// TextRowsetImporter.ReadRowsetPropertiesFromXml(). 
+		// Every class derived directly from Column should implement a shallow (memberwise) Copy().
+		// Unfortunately can't implement here in the abstract ancestor because it requires instantiating
+		// a new object. See VarCharColumn for suggested implementation. Used in
+		// TextRowsetImporter.ReadRowsetPropertiesFromXml().
 		public abstract Column Copy ();
 	}
 
 
-	// Column classes for base datatypes. 
+	// Column classes for base datatypes.
 	public class VarCharColumn : Column
 	{
-		public override SqlDbType DataType 
+		public override SqlDbType DataType
 		{
-			get 
+			get
 			{
 				return SqlDbType.VarChar;
 			}
 		}
-		public override object Data	
+		public override object Data
 		{
 			set
 			{
 				data = ValidateData(value);
 			}
 		}
-		// The base class does not provide any data validation. 
+		// The base class does not provide any data validation.
 		public override object ValidateData(object columndata)
 		{
 			try
 			{
-				// For Varchar we only need to validate length.  If string is too long, truncate. 
+				// For Varchar we only need to validate length.  If string is too long, truncate.
 				data = (string)Convert.ToString(columndata);
-                 
-                //also handle varchar(max) or nvarchar(max) 
+
+                //also handle varchar(max) or nvarchar(max)
                 if (((string)data).Length > this.SqlColumnLength && (this.SqlColumnLength != Column.SQL_MAX_LENGTH))
                 {
                     data = ((string)data).Substring(1, this.SqlColumnLength);
@@ -148,9 +148,9 @@ namespace RowsetImportEngine
 	}
 	public class NVarCharColumn : VarCharColumn
 	{
-		public override SqlDbType DataType 
-		{ 
-			get 
+		public override SqlDbType DataType
+		{
+			get
 			{
 				return SqlDbType.NVarChar;
 			}
@@ -160,34 +160,34 @@ namespace RowsetImportEngine
 	}
 	public class DateTimeColumn : Column
 	{
-		public override SqlDbType DataType 
+		public override SqlDbType DataType
 		{
-			get 
+			get
 			{
 				return SqlDbType.DateTime;
 			}
 		}
-		public override object Data	
+		public override object Data
 		{
 			set
 			{
 				data = ValidateData(value);
 			}
 		}
-		// The base class does not provide any data validation. 
+		// The base class does not provide any data validation.
 		public override object ValidateData(object columndata)
 		{
 			try
 			{
-				// Query Analyzer and osql format dates like this: 
+				// Query Analyzer and osql format dates like this:
 				//		2004-07-12 23:26:18.850
-				// The specific formatting is left up to the SQL ODBC driver. 
-				// TODO: Verify whether SQLODBC date formatting depends on the system locale. Do we need a way to specify formatting or LCID? 
+				// The specific formatting is left up to the SQL ODBC driver.
+				// TODO: Verify whether SQLODBC date formatting depends on the system locale. Do we need a way to specify formatting or LCID?
 
-				// Unfortunately, the framework's DateTime value only has second-level precision. Use 
-				// Convert.ToDateTime just to validate that the format of the datetime string is valid, 
-				// but actually store the string value so we can pass the milliseconds portion intact 
-				// to SQL. 
+				// Unfortunately, the framework's DateTime value only has second-level precision. Use
+				// Convert.ToDateTime just to validate that the format of the datetime string is valid,
+				// but actually store the string value so we can pass the milliseconds portion intact
+				// to SQL.
 				Convert.ToDateTime(columndata);
 				data = columndata.ToString();
 				return data;
@@ -225,7 +225,7 @@ namespace RowsetImportEngine
                 data = ValidateData(value);
             }
         }
-        // The base class does not provide any data validation. 
+        // The base class does not provide any data validation.
         //we have to convert the data to DateTimeOffset from sql output
         //here is an example of sql output 2016-02-02 21:07:05.1230000 +00:00
         public override object ValidateData(object columndata)
@@ -233,7 +233,7 @@ namespace RowsetImportEngine
             try
             {
 
-                
+
                 String pattern = @" ";
                 String[] elements = Regex.Split(columndata.ToString(), pattern);
 
@@ -245,7 +245,7 @@ namespace RowsetImportEngine
                 int minute = Int32.Parse(elements2[1]);
                if (hour<0)
                 {
-                    
+
                     minute = -minute;
                 }
 
@@ -268,14 +268,14 @@ namespace RowsetImportEngine
         }
 
         /*
-        public static implicit operator DateTimeOffset( DateTimeOffsetColumn myData)	
+        public static implicit operator DateTimeOffset( DateTimeOffsetColumn myData)
         {
-            
-            
+
+
             DateTimeOffset myDT = new DateTimeOffset(1900, 1, 1, 1, 0, 0, TimeSpan.Zero);
 
             try
-            { 
+            {
             }
             catch (Exception ex)
             {
@@ -284,7 +284,7 @@ namespace RowsetImportEngine
 
 
             return myDT;
-            
+
 
         }*/
         public DateTimeOffsetColumn() : base() { }
@@ -295,14 +295,14 @@ namespace RowsetImportEngine
 	public class IntColumn : Column
 	{
 		public override SqlDbType DataType
-		{ 
-			get 
+		{
+			get
 			{
 				return SqlDbType.Int;
-                
+
 			}
 		}
-		public override object Data 
+		public override object Data
 		{
 			set
 			{
@@ -311,14 +311,14 @@ namespace RowsetImportEngine
 		}
 		public override object ValidateData(object columndata)
 		{
-			try 
+			try
 			{
 				data = Convert.ToInt32 (columndata);
 				return data;
 			}
 			catch
 			{
-				// Set to null otherwise. 
+				// Set to null otherwise.
 				data = null;
 				return null;
 			}
@@ -334,14 +334,14 @@ namespace RowsetImportEngine
 	}
 	public class BigIntColumn : IntColumn
 	{
-		public override SqlDbType DataType 
-		{ 
-			get 
+		public override SqlDbType DataType
+		{
+			get
 			{
 				return SqlDbType.BigInt;
 			}
 		}
-		public override object Data 
+		public override object Data
 		{
 			set
 			{
@@ -350,7 +350,7 @@ namespace RowsetImportEngine
 		}
 		public override object ValidateData(object columndata)
 		{
-			try 
+			try
 			{
 				data = Convert.ToInt64 (columndata);
                 return data;
@@ -361,7 +361,7 @@ namespace RowsetImportEngine
 			}
 			catch
 			{
-				// Set to null otherwise. 
+				// Set to null otherwise.
 				data = null;
 				return null;
 			}
@@ -372,13 +372,13 @@ namespace RowsetImportEngine
 	public class FloatColumn : IntColumn
 	{
 		public override SqlDbType DataType
-		{ 
-			get 
+		{
+			get
 			{
 				return SqlDbType.Float;
 			}
 		}
-		public override object Data 
+		public override object Data
 		{
 			set
 			{
@@ -387,18 +387,18 @@ namespace RowsetImportEngine
 		}
 		public override object ValidateData(object columndata)
 		{
-			// QA and osql will format floats in one of the following ways: 
+			// QA and osql will format floats in one of the following ways:
 			//		123.45
 			//		1.2345E-10
-			// Convert.ToDouble(string) will understand both of these. 
-			try 
+			// Convert.ToDouble(string) will understand both of these.
+			try
 			{
 				data = Convert.ToDouble(columndata);
 				return data;
 			}
 			catch
 			{
-				// Set to null otherwise. 
+				// Set to null otherwise.
 				data = null;
 				return data;
 			}
@@ -409,13 +409,13 @@ namespace RowsetImportEngine
 	public class DecimalColumn : IntColumn
 	{
 		public override SqlDbType DataType
-		{ 
-			get 
+		{
+			get
 			{
 				return SqlDbType.Decimal;
 			}
 		}
-		public override object Data 
+		public override object Data
 		{
 			set
 			{
@@ -424,14 +424,14 @@ namespace RowsetImportEngine
 		}
 		public override object ValidateData(object columndata)
 		{
-			try 
+			try
 			{
 				data = Convert.ToDecimal(columndata);
 				return data;
 			}
 			catch
 			{
-				// Set to null otherwise. 
+				// Set to null otherwise.
 				data = null;
 				return data;
 			}
@@ -441,9 +441,9 @@ namespace RowsetImportEngine
 	}
 	public class VarBinaryColumn : Column
 	{
-		public override SqlDbType DataType 
-		{ 
-			get 
+		public override SqlDbType DataType
+		{
+			get
 			{
 				return SqlDbType.VarBinary;
 			}
@@ -457,20 +457,20 @@ namespace RowsetImportEngine
 		}
 		public override object ValidateData(object columndata)
 		{
-			// For now we require that the binary value is being provided in hex string form, e.g. "1a2b3c" or "0x1a2b3c". 
+			// For now we require that the binary value is being provided in hex string form, e.g. "1a2b3c" or "0x1a2b3c".
 			if (columndata == null || "String" == columndata.GetType().Name)
 			{
 				try
 				{
 					string tmpstr = (string)Convert.ChangeType(columndata, typeof(string));
-					// Remove "0x" prefix if exists. 
+					// Remove "0x" prefix if exists.
 					if ((columndata as string).Substring (0,2).ToUpper().Equals("0X"))
 						tmpstr = tmpstr.Substring(2);
-					// Add a leading zero to complete a byte, if necessary. 
-					if ((tmpstr.Length % 2) > 0) tmpstr = "0" + tmpstr; 
+					// Add a leading zero to complete a byte, if necessary.
+					if ((tmpstr.Length % 2) > 0) tmpstr = "0" + tmpstr;
 					// Validate max length, and truncate overflow bytes if necessary;
 					if (tmpstr.Length > this.Length) tmpstr = tmpstr.Substring(0, this.Length);
-					// Convert the hex string to a byte array. 
+					// Convert the hex string to a byte array.
 					byte[] bytearray = new byte[(tmpstr.Length / 2)];
 					for (int i = 0; i < (tmpstr.Length - 1); i += 2)
 					{
@@ -486,7 +486,7 @@ namespace RowsetImportEngine
 					data = null;
 					return null;
 				}
-			} 
+			}
 			else	// Caller tried to set the column data to something other than a string.
 			{
 				//throw (new System.InvalidCastException("VarBinaryColumn  must be set to a hex string value."));
@@ -497,9 +497,9 @@ namespace RowsetImportEngine
 		public override string ToString()					// Explicit convert-to-string operator
 		{
 			if (data == null) return "NULL";
-			else 
+			else
 			{
-				string tmpstr = ""; 
+				string tmpstr = "";
 				foreach (byte b in (data as byte[]))
 				{
 					tmpstr += b.ToString("X2");
@@ -510,9 +510,9 @@ namespace RowsetImportEngine
 		public static implicit operator string (VarBinaryColumn  c)	// Implicit convert-to-string operator
 		{
 			if (c.data == null) return "NULL";
-			else 
+			else
 			{
-				string tmpstr = ""; 
+				string tmpstr = "";
 				foreach (byte b in (c.data as byte[]))
 				{
 					tmpstr += b.ToString("X2");
